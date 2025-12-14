@@ -18,6 +18,7 @@ type stackRepo struct {
 	gitRepoObject *git.Repository
 	auth          *http.BasicAuth
 	path          string
+	revision      string
 }
 
 func newStackRepo(name string, path string, url string, auth *http.BasicAuth) (*stackRepo, error) {

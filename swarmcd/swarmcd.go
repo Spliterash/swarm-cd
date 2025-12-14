@@ -13,10 +13,22 @@ func Run() {
 	logger.Info("starting SwarmCD")
 	for {
 		var waitGroup sync.WaitGroup
+
+		logger.Debug("pulling changes...")
+		for _, repo := range repos {
+			r, err := repo.pullChanges("master")
+			if err != nil {
+				logger.Error(err.Error())
+				return
+			}
+			repo.revision = r
+			logger.Debug("changes pulled", "revision", r)
+		}
+
 		logger.Info("updating stacks...")
 		for _, swarmStack := range stacks {
 			waitGroup.Add(1)
-			go updateStackThread(swarmStack, &waitGroup)
+			go updateStackThread("init-"+swarmStack.repo.revision, swarmStack, &waitGroup)
 		}
 		waitGroup.Wait()
 		logger.Info("waiting for the update interval")
@@ -24,14 +36,14 @@ func Run() {
 	}
 }
 
-func updateStackThread(swarmStack *swarmStack, waitGroup *sync.WaitGroup) {
+func updateStackThread(revision string, swarmStack *swarmStack, waitGroup *sync.WaitGroup) {
 	repoLock := swarmStack.repo.lock
 	repoLock.Lock()
 	defer repoLock.Unlock()
 	defer waitGroup.Done()
 
 	logger.Info(fmt.Sprintf("updating %s stack", swarmStack.name))
-	revision, err := swarmStack.updateStack()
+	err := swarmStack.updateStack()
 	if err != nil {
 		stackStatus[swarmStack.name].Error = err.Error()
 		logger.Error(err.Error())
@@ -45,14 +57,31 @@ func updateStackThread(swarmStack *swarmStack, waitGroup *sync.WaitGroup) {
 
 func UpdateAllStackInRepo(repoName string) {
 	logger.Info("Update webhook stacks for repo " + repoName)
+
+	for _, repo := range repos {
+		r, err := repo.pullChanges("master")
+		if err != nil {
+			logger.Error(err.Error())
+			return
+		}
+		repo.revision = r
+		logger.Debug("changes pulled", "revision", r)
+	}
+
 	for _, stack := range stacks {
 		if stack.repo.name == repoName {
 			logger.Info("Start update " + stack.name)
 			stack.repo.lock.Lock()
-			_, err := stack.updateStack()
+			err := stack.updateStack()
 			if err != nil {
 				logger.Error(err.Error())
+				stackStatus[stack.name].Error = err.Error()
+				continue
+			} else {
+				stackStatus[stack.name].Error = ""
+				stackStatus[stack.name].Revision = stack.repo.revision
 			}
+
 			stack.repo.lock.Unlock()
 		}
 	}

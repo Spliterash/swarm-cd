@@ -34,6 +34,6 @@ func updateStack(ctx *gin.Context) {
 
 	name := ctx.Param("name")
 
-	swarmcd.UpdateAllStackInRepo(name)
+	go swarmcd.UpdateAllStackInRepo(name)
 	ctx.Status(200)
 }

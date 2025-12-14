@@ -36,18 +36,11 @@ func newSwarmStack(name string, repo *stackRepo, branch string, composePath stri
 	}
 }
 
-func (swarmStack *swarmStack) updateStack() (revision string, err error) {
+func (swarmStack *swarmStack) updateStack() (err error) {
 	log := logger.With(
 		slog.String("stack", swarmStack.name),
 		slog.String("branch", swarmStack.branch),
 	)
-
-	log.Debug("pulling changes...")
-	revision, err = swarmStack.repo.pullChanges(swarmStack.branch)
-	if err != nil {
-		return
-	}
-	log.Debug("changes pulled", "revision", revision)
 
 	log.Debug("reading stack file...")
 	stackBytes, err := swarmStack.readStack()
@@ -72,7 +65,7 @@ func (swarmStack *swarmStack) updateStack() (revision string, err error) {
 	log.Debug("decrypting secrets...")
 	err = swarmStack.decryptSopsFiles(stackContents)
 	if err != nil {
-		return "", fmt.Errorf("failed to decrypt one or more sops files for %s stack: %w", swarmStack.name, err)
+		return fmt.Errorf("failed to decrypt one or more sops files for %s stack: %w", swarmStack.name, err)
 	}
 
 	log.Debug("rotating configs and secrets...")
