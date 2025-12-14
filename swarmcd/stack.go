@@ -235,7 +235,7 @@ func (swarmStack *swarmStack) writeStack(composeMap map[string]any) error {
 func (swarmStack *swarmStack) deployStack() error {
 	cmd := stack.NewStackCommand(dockerCli)
 	cmd.SetArgs([]string{
-		"deploy", "--detach", "--with-registry-auth", "-c",
+		"deploy", "--detach", "--with-registry-auth", "--prune", "-c",
 		path.Join(swarmStack.repo.path, swarmStack.composePath),
 		swarmStack.name,
 	})
