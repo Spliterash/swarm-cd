@@ -16,6 +16,7 @@ import (
 type StackStatus struct {
 	Error    string
 	Revision string
+	Hash     string
 	RepoURL  string
 }
 

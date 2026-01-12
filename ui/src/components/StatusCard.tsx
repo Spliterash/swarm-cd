@@ -4,11 +4,13 @@ import React from "react"
 function StatusCard({
   name,
   error,
+  hash,
   revision,
   repoURL
 }: Readonly<{
   name: string
   error: string
+  hash: string
   revision: string
   repoURL: string
 }>): React.ReactElement {
@@ -27,6 +29,9 @@ function StatusCard({
 
         <KeyText>Revision:</KeyText>
         <Text>{revision}</Text>
+
+        <KeyText>Hash:</KeyText>
+        <Text>{hash}</Text>
 
         <KeyText>Repo URL:</KeyText>
         <Link color="teal.500" href={repoURL} isExternal>

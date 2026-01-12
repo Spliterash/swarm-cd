@@ -36,7 +36,7 @@ func newSwarmStack(name string, repo *stackRepo, branch string, composePath stri
 	}
 }
 
-func (swarmStack *swarmStack) updateStack() (err error) {
+func (swarmStack *swarmStack) prepareStackForUpdate() (finalComposeFile []byte, err error) {
 	log := logger.With(
 		slog.String("stack", swarmStack.name),
 		slog.String("branch", swarmStack.branch),
@@ -59,13 +59,13 @@ func (swarmStack *swarmStack) updateStack() (err error) {
 	log.Debug("parsing stack content...")
 	stackContents, err := swarmStack.parseStackString([]byte(stackBytes))
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	log.Debug("decrypting secrets...")
 	err = swarmStack.decryptSopsFiles(stackContents)
 	if err != nil {
-		return fmt.Errorf("failed to decrypt one or more sops files for %s stack: %w", swarmStack.name, err)
+		return nil, fmt.Errorf("failed to decrypt one or more sops files for %s stack: %w", swarmStack.name, err)
 	}
 
 	log.Debug("rotating configs and secrets...")
@@ -75,14 +75,9 @@ func (swarmStack *swarmStack) updateStack() (err error) {
 	}
 
 	log.Debug("writing stack to file...")
-	err = swarmStack.writeStack(stackContents)
-	if err != nil {
-		return
-	}
+	finalComposeFileBytes, err := swarmStack.writeStack(stackContents)
 
-	log.Debug("deploying stack...")
-	err = swarmStack.deployStack()
-	return
+	return finalComposeFileBytes, err
 }
 
 func (swarmStack *swarmStack) readStack() ([]byte, error) {
@@ -221,15 +216,15 @@ func (swarmStack *swarmStack) rotateObjects(objects map[string]any, objectType s
 	return nil
 }
 
-func (swarmStack *swarmStack) writeStack(composeMap map[string]any) error {
+func (swarmStack *swarmStack) writeStack(composeMap map[string]any) ([]byte, error) {
 	composeFileBytes, err := yaml.Marshal(composeMap)
 	if err != nil {
-		return fmt.Errorf("could not store compose file as yaml after calculating hashes for stack %s", swarmStack.name)
+		return nil, fmt.Errorf("could not store compose file as yaml after calculating hashes for stack %s", swarmStack.name)
 	}
 	composeFile := path.Join(swarmStack.repo.path, swarmStack.composePath)
 	fileInfo, _ := os.Stat(composeFile)
 	os.WriteFile(composeFile, composeFileBytes, fileInfo.Mode())
-	return nil
+	return composeFileBytes, nil
 }
 
 func (swarmStack *swarmStack) deployStack() error {

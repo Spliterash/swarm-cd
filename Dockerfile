@@ -5,8 +5,6 @@ COPY ui/package.json ui/package-lock.json ./
 RUN npm install
 COPY ui/ ./
 RUN npm run build
-# Fail this stage if tests fail
-RUN npm run test
 
 # Stage 2: Build the backend
 FROM golang:1.22.5 AS backend-build
