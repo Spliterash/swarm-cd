@@ -80,6 +80,7 @@ func UpdateAllStackInRepo(repoName string) {
 			finalComposeBytes, err := stack.prepareStackForUpdate()
 
 			if err != nil {
+				stack.repo.lock.Unlock()
 				logger.Error(err.Error())
 				stackStatus[stack.name].Error = err.Error()
 				continue
@@ -89,13 +90,14 @@ func UpdateAllStackInRepo(repoName string) {
 
 			if hash == stackStatus[stack.name].Hash {
 				logger.Info(fmt.Sprintf("Skip update %s because hash not changed", stack.name))
+				stack.repo.lock.Unlock()
 				continue
 			}
+
 			err = stack.deployStack()
 			if err != nil {
 				logger.Error(err.Error())
 				stackStatus[stack.name].Error = err.Error()
-				continue
 			} else {
 				stackStatus[stack.name].Error = ""
 				stackStatus[stack.name].Revision = stack.repo.revision
